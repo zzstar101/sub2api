@@ -19,6 +19,15 @@
 
 切换脚本会先检查 Sub2API 健康状态，再备份 Caddyfile、精确替换 `api.rinnebeat.com` 的唯一上游、校验配置并热加载。任何中间步骤失败都会自动恢复 Caddyfile。
 
+NewAPI 用户和有效 Key 可以先只读预演：
+
+```sh
+./scripts/migrate-newapi-users.py \
+  --newapi-db /home/nekosaki_tsuyuki/services/new-api/data/one-api.db
+```
+
+确认数量后添加 `--apply`。写入前脚本会自动生成 PostgreSQL 压缩备份；NewAPI 原始数据库不会被修改。
+
 ## 回滚
 
 执行：
