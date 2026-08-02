@@ -20,8 +20,8 @@ sync_caddyfile() {
   container_candidate="/tmp/Caddyfile.rinnebeat.$$"
   docker cp "$CADDYFILE" "caddy:$container_candidate"
   docker exec caddy caddy validate --config "$container_candidate"
-  docker exec caddy sh -c "cat '$container_candidate' > /etc/caddy/Caddyfile && rm -f '$container_candidate'"
-  docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+  docker exec caddy caddy reload --config "$container_candidate"
+  docker exec caddy rm -f "$container_candidate"
 }
 
 rollback() {

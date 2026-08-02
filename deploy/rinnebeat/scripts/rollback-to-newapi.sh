@@ -13,8 +13,8 @@ python3 "$SUB2_DIR/scripts/set-caddy-upstream.py" \
 container_candidate="/tmp/Caddyfile.rinnebeat.$$"
 docker cp "$CADDYFILE" "caddy:$container_candidate"
 docker exec caddy caddy validate --config "$container_candidate"
-docker exec caddy sh -c "cat '$container_candidate' > /etc/caddy/Caddyfile && rm -f '$container_candidate'"
-docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+docker exec caddy caddy reload --config "$container_candidate"
+docker exec caddy rm -f "$container_candidate"
 
 # 回滚只恢复流量，不停止 Sub2API，便于继续检查数据。
 curl --fail --silent --show-error --max-time 10 \
