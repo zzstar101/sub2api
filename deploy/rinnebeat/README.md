@@ -88,7 +88,7 @@ python3 scripts/configure-channel-monitors.py --apply --run-once
 python3 scripts/repair-group-account-bindings.py --apply
 ```
 
-脚本会先保存不含凭据的账号分组回滚清单。复合分组继续绑定全部账号；DeepSeek、Mimo、MiniMax、MoonShot、智谱和通义千问只绑定明确支持其模型的账号。
+脚本会先保存不含凭据的账号分组回滚清单。`OpenAI` 只绑定 OpenAI OAuth 账号；复合分组继续绑定全部账号；DeepSeek、Mimo、MiniMax、MoonShot、智谱和通义千问只绑定明确支持其模型的账号。
 
 ## 回滚
 

@@ -18,7 +18,8 @@ from pathlib import Path
 from types import ModuleType
 
 
-COMPOSITE_GROUPS = {"OpenAI", "Claude"}
+COMPOSITE_GROUPS = {"Claude"}
+OPENAI_OAUTH_GROUPS = {"OpenAI"}
 GROK_GROUPS = {"xAI"}
 OPENAI_PREFIXES = ("deepseek-", "glm-", "hy3-", "kimi-", "mimo-", "minimax-", "qwen")
 
@@ -130,17 +131,26 @@ def ensure_group(
     if existing is None:
         result = client.post("/admin/groups", payload)
     else:
-        if existing.get("platform") != platform:
+        existing_platform = str(existing.get("platform") or "")
+        correcting_legacy_openai = (
+            name in OPENAI_OAUTH_GROUPS
+            and existing_platform == "composite"
+            and platform == "openai"
+        )
+        if existing_platform != platform and not correcting_legacy_openai:
             raise RuntimeError(
                 f"Sub2API 同名分组平台不匹配: {name}={existing.get('platform')}, expected={platform}"
             )
+        update_payload: dict[str, object] = {
+            "rate_multiplier": rate_multiplier,
+            "status": "active",
+            "models_list_config": payload["models_list_config"],
+        }
+        if correcting_legacy_openai:
+            update_payload["platform"] = platform
         result = client.put(
             f"/admin/groups/{int(existing['id'])}",
-            {
-                "rate_multiplier": rate_multiplier,
-                "status": "active",
-                "models_list_config": payload["models_list_config"],
-            },
+            update_payload,
         )
     if not isinstance(result, dict):
         raise RuntimeError(f"配置 Sub2API 分组失败: {name}")
@@ -204,11 +214,16 @@ def bind_accounts(
     models_by_group: dict[str, list[str]],
 ) -> None:
     composite_ids = {int(groups[name]["id"]) for name in COMPOSITE_GROUPS if name in groups}
+    openai_oauth_ids = {
+        int(groups[name]["id"])
+        for name in OPENAI_OAUTH_GROUPS
+        if name in groups
+    }
     managed_ids = {int(group["id"]) for group in groups.values()}
     openai_groups = {
         name: int(group["id"])
         for name, group in groups.items()
-        if platform_for_group(name) == "openai"
+        if platform_for_group(name) == "openai" and name not in OPENAI_OAUTH_GROUPS
     }
     grok_ids = {
         int(group["id"])
@@ -225,6 +240,8 @@ def bind_accounts(
         desired.update(composite_ids)
         platform = str(account.get("platform") or "")
         if platform == "openai":
+            if str(account.get("type") or "") == "oauth":
+                desired.update(openai_oauth_ids)
             credentials = account.get("credentials") or {}
             mapping = credentials.get("model_mapping") if isinstance(credentials, dict) else {}
             patterns = tuple(str(key) for key in mapping) if isinstance(mapping, dict) else ()
