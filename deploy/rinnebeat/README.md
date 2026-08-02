@@ -38,6 +38,29 @@ CPA 账号池也可以先预演：
 
 脚本默认支持 Codex、OpenAI API 上游、Anthropic 和 Grok，明确跳过 OpenCode 与 Kimi。实际导入会按小批次执行，并在写入前再次备份 PostgreSQL。
 
+## 复合分组与回滚
+
+先预览要绑定的迁移账号与 API Key：
+
+```sh
+python3 scripts/configure-sub2api-routing.py
+```
+
+确认后创建独立的 `Rinnebeat Composite` 分组，绑定账号与密钥，并生成不含凭据的回滚清单：
+
+```sh
+python3 scripts/configure-sub2api-routing.py --apply
+```
+
+需要撤销分组绑定时，指定上一步输出的清单：
+
+```sh
+python3 scripts/configure-sub2api-routing.py \
+  --rollback backups/routing/sub2api-routing-before-YYYYMMDDTHHMMSSZ.json
+```
+
+脚本不修改 Caddy，也不会停止 NewAPI、CPA 或 CPA Manager Plus。
+
 ## 回滚
 
 执行：
