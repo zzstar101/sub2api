@@ -61,6 +61,17 @@ python3 scripts/configure-sub2api-routing.py \
 
 脚本不修改 Caddy，也不会停止 NewAPI、CPA 或 CPA Manager Plus。
 
+## NewAPI 分组迁移
+
+按 NewAPI 的 `GroupRatio`、`UserUsableGroups`、Token 分组和每组实际 `/v1/models` 结果预演：
+
+```sh
+python3 scripts/migrate-newapi-groups.py \
+  --newapi-db /home/nekosaki_tsuyuki/services/new-api/data/one-api.db
+```
+
+添加 `--apply` 后会创建或更新同名 Sub2API 分组，把账号池绑定到对应平台，并将每个迁移 Key 切到原 NewAPI 分组。写入前会生成不含凭据的分组回滚清单，可交给 `configure-sub2api-routing.py --rollback` 恢复。
+
 ## 回滚
 
 执行：
