@@ -11,6 +11,7 @@ import sqlite3
 import sys
 import urllib.error
 import urllib.request
+from fnmatch import fnmatchcase
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -200,10 +201,12 @@ def bind_accounts(
     client: object,
     accounts: list[dict[str, object]],
     groups: dict[str, dict[str, object]],
+    models_by_group: dict[str, list[str]],
 ) -> None:
     composite_ids = {int(groups[name]["id"]) for name in COMPOSITE_GROUPS if name in groups}
-    openai_ids = {
-        int(group["id"])
+    managed_ids = {int(group["id"]) for group in groups.values()}
+    openai_groups = {
+        name: int(group["id"])
         for name, group in groups.items()
         if platform_for_group(name) == "openai"
     }
@@ -214,11 +217,21 @@ def bind_accounts(
     }
     batches: dict[tuple[int, ...], list[int]] = defaultdict(list)
     for account in accounts:
-        desired = {int(value) for value in (account.get("group_ids") or [])}
+        desired = {
+            int(value)
+            for value in (account.get("group_ids") or [])
+            if int(value) not in managed_ids
+        }
         desired.update(composite_ids)
         platform = str(account.get("platform") or "")
         if platform == "openai":
-            desired.update(openai_ids)
+            credentials = account.get("credentials") or {}
+            mapping = credentials.get("model_mapping") if isinstance(credentials, dict) else {}
+            patterns = tuple(str(key) for key in mapping) if isinstance(mapping, dict) else ()
+            for name, group_id in openai_groups.items():
+                models = models_by_group.get(name, [])
+                if any(fnmatchcase(model, pattern) for model in models for pattern in patterns):
+                    desired.add(group_id)
         elif platform == "grok":
             desired.update(grok_ids)
         batches[tuple(sorted(desired))].append(int(account["id"]))
@@ -259,7 +272,7 @@ def apply_groups(
     accounts = routing.paginated_items(client, "/admin/accounts")
     selected_keys = [target_keys[key] for key in token_groups]
     manifest = write_manifest(backup_dir, accounts, selected_keys)
-    bind_accounts(client, accounts, groups)
+    bind_accounts(client, accounts, groups, models_by_group)
 
     for key, group_name in token_groups.items():
         if group_name not in groups:

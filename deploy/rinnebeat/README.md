@@ -82,6 +82,14 @@ python3 scripts/configure-channel-monitors.py --apply --run-once
 
 默认每小时探测一次并增加正负 20 分钟随机抖动，避免所有分组同时请求造成周期性负载峰值。空的系统 `default` 分组不会创建误导性的监控项；脚本可重复执行，会复用同名 Key 和监控配置。
 
+如果历史迁移曾把所有 OpenAI 兼容账号绑定到每个窄分组，可按账号的 `model_mapping` 收紧绑定：
+
+```bash
+python3 scripts/repair-group-account-bindings.py --apply
+```
+
+脚本会先保存不含凭据的账号分组回滚清单。复合分组继续绑定全部账号；DeepSeek、Mimo、MiniMax、MoonShot、智谱和通义千问只绑定明确支持其模型的账号。
+
 ## 回滚
 
 执行：

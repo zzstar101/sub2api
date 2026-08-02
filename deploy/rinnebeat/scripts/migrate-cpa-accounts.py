@@ -92,14 +92,18 @@ def data_account(
     source: str,
     concurrency: int,
     priority: int,
+    extra: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    account_extra = {"rinnebeat_migration_source": source}
+    if extra:
+        account_extra.update(extra)
     return {
         "name": name,
         "notes": f"Migrated from CPA: {source}",
         "platform": platform,
         "type": account_type,
         "credentials": credentials,
-        "extra": {"rinnebeat_migration_source": source},
+        "extra": account_extra,
         "concurrency": concurrency,
         "priority": priority,
     }
@@ -236,6 +240,9 @@ def load_api_accounts(config_path: Path) -> tuple[list[dict[str, object]], Count
                     source=f"openai-compatibility[{section_index}].api-key-entries[{entry_index}]",
                     concurrency=3,
                     priority=max(0, int(entry.get("priority") or 50)),
+                    # CPA 的 openai-compatibility 渠道按 Chat Completions 协议转发。
+                    # 显式覆盖可避免 Sub2API 在能力未知时默认请求 /responses。
+                    extra={"openai_responses_mode": "force_chat_completions"},
                 )
             )
             counts["openai"] += 1
