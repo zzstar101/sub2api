@@ -2,7 +2,8 @@
 set -Eeuo pipefail
 
 BASE_DIR=${BASE_DIR:-/home/nekosaki_tsuyuki/services}
-SUB2_DIR=${SUB2_DIR:-$BASE_DIR/sub2api}
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SUB2_DIR=${SUB2_DIR:-$(dirname "$SCRIPT_DIR")}
 CADDYFILE=${CADDYFILE:-$BASE_DIR/caddy/Caddyfile}
 BACKUP_DIR=${BACKUP_DIR:-$SUB2_DIR/backups/caddy}
 SITE=${SITE:-api.rinnebeat.com}
