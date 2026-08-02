@@ -28,6 +28,16 @@ NewAPI 用户和有效 Key 可以先只读预演：
 
 确认数量后添加 `--apply`。写入前脚本会自动生成 PostgreSQL 压缩备份；NewAPI 原始数据库不会被修改。
 
+CPA 账号池也可以先预演：
+
+```sh
+./scripts/migrate-cpa-accounts.py \
+  --auth-dir /home/nekosaki_tsuyuki/services/cpa/auth \
+  --cpa-config /home/nekosaki_tsuyuki/services/cpa/config.docker.yaml
+```
+
+脚本默认支持 Codex、OpenAI API 上游、Anthropic 和 Grok，明确跳过 OpenCode 与 Kimi。实际导入会按小批次执行，并在写入前再次备份 PostgreSQL。
+
 ## 回滚
 
 执行：
