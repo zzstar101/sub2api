@@ -72,6 +72,16 @@ python3 scripts/migrate-newapi-groups.py \
 
 添加 `--apply` 后会创建或更新同名 Sub2API 分组，把账号池绑定到对应平台，并将每个迁移 Key 切到原 NewAPI 分组。写入前会生成不含凭据的分组回滚清单，可交给 `configure-sub2api-routing.py --rollback` 恢复。
 
+## 渠道监控
+
+为所有非空业务分组创建独立监控 Key，并通过生产域名做低频端到端探测：
+
+```bash
+python3 scripts/configure-channel-monitors.py --apply --run-once
+```
+
+默认每小时探测一次并增加正负 20 分钟随机抖动，避免所有分组同时请求造成周期性负载峰值。空的系统 `default` 分组不会创建误导性的监控项；脚本可重复执行，会复用同名 Key 和监控配置。
+
 ## 回滚
 
 执行：
