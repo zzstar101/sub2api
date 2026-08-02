@@ -9,7 +9,11 @@ SITE=${SITE:-api.rinnebeat.com}
 
 python3 "$SUB2_DIR/scripts/set-caddy-upstream.py" \
   "$CADDYFILE" "$SITE" "sub2api:8080" "new-api:3000"
-docker exec caddy caddy validate --config /etc/caddy/Caddyfile
+
+container_candidate="/tmp/Caddyfile.rinnebeat.$$"
+docker cp "$CADDYFILE" "caddy:$container_candidate"
+docker exec caddy caddy validate --config "$container_candidate"
+docker exec caddy sh -c "cat '$container_candidate' > /etc/caddy/Caddyfile && rm -f '$container_candidate'"
 docker exec caddy caddy reload --config /etc/caddy/Caddyfile
 
 # 回滚只恢复流量，不停止 Sub2API，便于继续检查数据。

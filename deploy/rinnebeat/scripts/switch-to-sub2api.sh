@@ -16,16 +16,24 @@ mkdir -p "$BACKUP_DIR"
 backup="$BACKUP_DIR/Caddyfile.$(date -u +%Y%m%dT%H%M%SZ)"
 cp "$CADDYFILE" "$backup"
 
+sync_caddyfile() {
+  container_candidate="/tmp/Caddyfile.rinnebeat.$$"
+  docker cp "$CADDYFILE" "caddy:$container_candidate"
+  docker exec caddy caddy validate --config "$container_candidate"
+  docker exec caddy sh -c "cat '$container_candidate' > /etc/caddy/Caddyfile && rm -f '$container_candidate'"
+  docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+}
+
 rollback() {
+  trap - HUP INT TERM ERR
   cp "$backup" "$CADDYFILE"
-  docker exec caddy caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 || true
+  sync_caddyfile >/dev/null 2>&1 || true
 }
 trap rollback HUP INT TERM ERR
 
 python3 "$SUB2_DIR/scripts/set-caddy-upstream.py" \
   "$CADDYFILE" "$SITE" "new-api:3000" "sub2api:8080"
-docker exec caddy caddy validate --config /etc/caddy/Caddyfile
-docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+sync_caddyfile
 curl --fail --silent --show-error --max-time 10 \
   --resolve "$SITE:443:127.0.0.1" "https://$SITE/health" >/dev/null
 

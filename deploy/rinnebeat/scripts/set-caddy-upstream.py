@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 from pathlib import Path
 
 
@@ -53,7 +54,9 @@ def main() -> None:
     result = replace_upstream(source, args.site, args.old, args.new)
     temporary = args.path.with_suffix(args.path.suffix + ".tmp")
     temporary.write_text(result, encoding="utf-8", newline="")
-    temporary.replace(args.path)
+    # Docker bind mount 会持有原 inode；覆盖内容而不是 rename，避免容器继续读取旧文件。
+    shutil.copyfile(temporary, args.path)
+    temporary.unlink()
 
 
 if __name__ == "__main__":
