@@ -273,7 +273,7 @@ class Sub2APIClient:
         return body.get("data", body) if isinstance(body, dict) else body
 
 
-def existing_account_names(container: str, database: str, user: str) -> set[str]:
+def existing_account_keys(container: str, database: str, user: str) -> set[tuple[str, str]]:
     output = subprocess.check_output(
         [
             "docker",
@@ -286,10 +286,15 @@ def existing_account_names(container: str, database: str, user: str) -> set[str]
             database,
             "-At",
             "-c",
-            "select name from accounts where deleted_at is null",
+            "select platform || E'\\t' || name from accounts where deleted_at is null",
         ]
     )
-    return set(output.decode("utf-8").splitlines())
+    result: set[tuple[str, str]] = set()
+    for line in output.decode("utf-8").splitlines():
+        platform, separator, name = line.partition("\t")
+        if separator:
+            result.add((platform, name))
+    return result
 
 
 def backup_database(container: str, database: str, user: str, backup_dir: Path) -> Path:
@@ -362,8 +367,12 @@ def main() -> int:
         args.postgres_user,
         args.backup_dir,
     )
-    existing = existing_account_names(args.postgres_container, args.postgres_database, args.postgres_user)
-    pending = [account for account in accounts if str(account["name"]) not in existing]
+    existing = existing_account_keys(args.postgres_container, args.postgres_database, args.postgres_user)
+    pending = [
+        account
+        for account in accounts
+        if (str(account["platform"]), str(account["name"])) not in existing
+    ]
     print(f"已存在 {len(accounts) - len(pending)} 个，本次待导入 {len(pending)} 个。")
     client = Sub2APIClient(args.base_url, env["ADMIN_EMAIL"], env["ADMIN_PASSWORD"])
 
